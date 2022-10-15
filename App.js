@@ -14,7 +14,7 @@ const {
   Value,
   diffClamp,
   multiply,
-  interpolate,
+  interpolateNode,
   cond,
   set,
   add,
@@ -123,7 +123,7 @@ class CollapsibleNavBar extends React.Component {
       inverseDiffClampNode,
     );
 
-    this.animatedTitleOpacity = interpolate(this.animatedNavBarTranslateY, {
+    this.animatedTitleOpacity = interpolateNode(this.animatedNavBarTranslateY, {
       inputRange: [-NAV_BAR_HEIGHT, 0],
       outputRange: [0, 1],
       extrapolate: 'clamp',

@@ -4,7 +4,6 @@
     "description": "Collapsible navbar pattern with all animations running on the native thread. Check https://blog.callstack.io/reanimating-your-react-native-experience-d1377d51118a for more details!",
     "slug": "reanimated-collapsible-navbar",
     "privacy": "public",
-    "sdkVersion": "32.0.0",
     "platforms": [
       "ios",
       "android"
