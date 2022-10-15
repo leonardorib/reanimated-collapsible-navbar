@@ -6,6 +6,7 @@ import {
   Button,
   Platform,
   StatusBar,
+  StatusBarStyle,
 } from 'react-native';
 import Animated, {
   event,
@@ -25,6 +26,7 @@ import Animated, {
   spring,
   neq,
   eq,
+  Extrapolate,
 } from 'react-native-reanimated';
 
 const DRAG_END_INITIAL = 10000000;
@@ -118,20 +120,20 @@ const CollapsibleNavBar = () => {
   const animatedTitleOpacity = interpolateNode(animatedNavBarTranslateY, {
     inputRange: [-NAV_BAR_HEIGHT, 0],
     outputRange: [0, 1],
-    extrapolate: 'clamp',
+    extrapolate: Extrapolate.CLAMP,
   });
 
   const blockJS = () => {
-    let start = new Date();
-    let end = new Date();
+    let start = Date.now();
+    let end = Date.now();
     while (end - start < 20000) {
-      end = new Date();
+      end = Date.now();
     }
   };
 
-  const barStyle = Platform.select({
+  const barStyle = Platform.select<StatusBarStyle>({
     ios: 'dark-content',
-    android: 'light-content',
+    default: 'light-content',
   });
 
   return (
