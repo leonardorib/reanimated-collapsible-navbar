@@ -7,9 +7,7 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
-
-const {
+import Animated, {
   event,
   Value,
   diffClamp,
@@ -27,7 +25,7 @@ const {
   spring,
   neq,
   eq,
-} = Animated;
+} from 'react-native-reanimated';
 
 const DRAG_END_INITIAL = 10000000;
 const STATUS_BAR_HEIGHT = Platform.select({ ios: 20, android: 24 });
@@ -86,51 +84,44 @@ function runSpring({
   ];
 }
 
-class CollapsibleNavBar extends React.Component {
-  constructor(props) {
-    super(props);
-    this.scrollY = new Value(0);
-    this.scrollEndDragVelocity = new Value(DRAG_END_INITIAL);
-    this.snapOffset = new Value(0);
+const CollapsibleNavBar = () => {
+  const scrollY = new Value(0);
+  const scrollEndDragVelocity = new Value(DRAG_END_INITIAL);
+  const snapOffset = new Value(0);
 
-    const diffClampNode = diffClamp(
-      add(this.scrollY, this.snapOffset),
-      0,
-      NAV_BAR_HEIGHT,
-    );
-    const inverseDiffClampNode = multiply(diffClampNode, -1);
+  const diffClampNode = diffClamp(add(scrollY, snapOffset), 0, NAV_BAR_HEIGHT);
+  const inverseDiffClampNode = multiply(diffClampNode, -1);
 
-    const clock = new Clock();
+  const clock = new Clock();
 
-    const snapPoint = cond(
-      lessThan(diffClampNode, NAV_BAR_HEIGHT / 2),
-      0,
-      -NAV_BAR_HEIGHT,
-    );
+  const snapPoint = cond(
+    lessThan(diffClampNode, NAV_BAR_HEIGHT / 2),
+    0,
+    -NAV_BAR_HEIGHT,
+  );
 
-    this.animatedNavBarTranslateY = cond(
-      // Condition to detect if we stopped scrolling
-      neq(this.scrollEndDragVelocity, DRAG_END_INITIAL),
-      runSpring({
-        clock,
-        from: inverseDiffClampNode,
-        velocity: 0,
-        toValue: snapPoint,
-        scrollEndDragVelocity: this.scrollEndDragVelocity,
-        snapOffset: this.snapOffset,
-        diffClampNode,
-      }),
-      inverseDiffClampNode,
-    );
+  const animatedNavBarTranslateY = cond(
+    // Condition to detect if we stopped scrolling
+    neq(scrollEndDragVelocity, DRAG_END_INITIAL),
+    runSpring({
+      clock,
+      from: inverseDiffClampNode,
+      velocity: 0,
+      toValue: snapPoint,
+      scrollEndDragVelocity: scrollEndDragVelocity,
+      snapOffset: snapOffset,
+      diffClampNode,
+    }),
+    inverseDiffClampNode,
+  );
 
-    this.animatedTitleOpacity = interpolateNode(this.animatedNavBarTranslateY, {
-      inputRange: [-NAV_BAR_HEIGHT, 0],
-      outputRange: [0, 1],
-      extrapolate: 'clamp',
-    });
-  }
+  const animatedTitleOpacity = interpolateNode(animatedNavBarTranslateY, {
+    inputRange: [-NAV_BAR_HEIGHT, 0],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
-  blockJS = () => {
+  const blockJS = () => {
     let start = new Date();
     let end = new Date();
     while (end - start < 20000) {
@@ -138,73 +129,68 @@ class CollapsibleNavBar extends React.Component {
     }
   };
 
-  render() {
-    const barStyle = Platform.select({
-      ios: 'dark-content',
-      android: 'light-content',
-    });
-    return (
-      <View style={styles.container}>
-        <StatusBar backgroundColor="#C2185B" barStyle={barStyle} />
-        <Animated.ScrollView
-          bounces={false}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          scrollEventThrottle={1}
-          onScroll={event(
-            [
-              {
-                nativeEvent: {
-                  contentOffset: {
-                    y: this.scrollY,
-                  },
-                },
-              },
-            ],
-            { useNativeDriver: true },
-          )}
-          onScrollEndDrag={event(
-            [
-              {
-                nativeEvent: {
-                  velocity: {
-                    y: this.scrollEndDragVelocity,
-                  },
-                },
-              },
-            ],
-            { useNativeDriver: true },
-          )}
-        >
-          {Array.from({ length: 60 }).map((_, i) => (
-            <View key={i} style={styles.row}>
-              <Text>{i}</Text>
-            </View>
-          ))}
-          <Button title="Block JS" onPress={this.blockJS} />
-        </Animated.ScrollView>
-        <Animated.View
-          style={[
-            styles.navBar,
+  const barStyle = Platform.select({
+    ios: 'dark-content',
+    android: 'light-content',
+  });
+
+  return (
+    <View style={styles.container}>
+      <StatusBar backgroundColor="#C2185B" barStyle={barStyle} />
+      <Animated.ScrollView
+        bounces={false}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        scrollEventThrottle={1}
+        onScroll={event(
+          [
             {
-              transform: [
-                {
-                  translateY: this.animatedNavBarTranslateY,
+              nativeEvent: {
+                contentOffset: {
+                  y: scrollY,
                 },
-              ],
+              },
             },
-          ]}
+          ],
+          { useNativeDriver: true },
+        )}
+        onScrollEndDrag={event(
+          [
+            {
+              nativeEvent: {
+                velocity: {
+                  y: scrollEndDragVelocity,
+                },
+              },
+            },
+          ],
+          { useNativeDriver: true },
+        )}
+      >
+        {Array.from({ length: 60 }).map((_, i) => (
+          <View key={i} style={styles.row}>
+            <Text>{i}</Text>
+          </View>
+        ))}
+        <Button title="Block JS" onPress={blockJS} />
+      </Animated.ScrollView>
+      <Animated.View
+        style={[
+          styles.navBar,
+          {
+            marginTop: animatedNavBarTranslateY,
+          },
+        ]}
+      >
+        <Animated.Text
+          style={[styles.navBarTitle, { opacity: animatedTitleOpacity }]}
         >
-          <Animated.Text
-            style={[styles.navBarTitle, { opacity: this.animatedTitleOpacity }]}
-          >
-            Navigation Bar
-          </Animated.Text>
-        </Animated.View>
-      </View>
-    );
-  }
-}
+          Navigation Bar
+        </Animated.Text>
+      </Animated.View>
+    </View>
+  );
+};
 
 export default CollapsibleNavBar;
 
