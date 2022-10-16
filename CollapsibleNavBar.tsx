@@ -7,6 +7,7 @@ import {
   Platform,
   StatusBar,
   StatusBarStyle,
+  RefreshControl,
 } from 'react-native';
 import Animated, {
   event,
@@ -14,6 +15,7 @@ import Animated, {
   diffClamp,
   multiply,
   interpolateNode,
+  max,
   cond,
   set,
   add,
@@ -85,13 +87,31 @@ function runSpring({
     state.position,
   ];
 }
-
+const wait = (timeout) => {
+  return new Promise((resolve) => setTimeout(resolve, timeout));
+};
 const CollapsibleNavBar = () => {
-  const scrollY = new Value(0);
-  const scrollEndDragVelocity = new Value(DRAG_END_INITIAL);
-  const snapOffset = new Value(0);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = React.useCallback(() => {
+    console.log('onRefresh');
+    setRefreshing(true);
+    wait(2000).then(() => setRefreshing(false));
+  }, []);
 
-  const diffClampNode = diffClamp(add(scrollY, snapOffset), 0, NAV_BAR_HEIGHT);
+  const scrollY = React.useRef(new Value<number>(0));
+  const scrollEndDragVelocity = React.useRef(
+    new Value<number>(DRAG_END_INITIAL),
+  );
+  const snapOffset = new Value<number>(0);
+
+  const diffClampNode = diffClamp(
+    add(
+      max(scrollY.current, 0), // Handles pull down to refresh on iOS, due to bounce
+      snapOffset,
+    ),
+    0,
+    NAV_BAR_HEIGHT,
+  );
   const inverseDiffClampNode = multiply(diffClampNode, -1);
 
   const clock = new Clock();
@@ -104,15 +124,15 @@ const CollapsibleNavBar = () => {
 
   const animatedNavBarTranslateY = cond(
     // Condition to detect if we stopped scrolling
-    neq(scrollEndDragVelocity, DRAG_END_INITIAL),
+    neq(scrollEndDragVelocity.current, DRAG_END_INITIAL),
     runSpring({
-      clock,
+      clock: clock,
       from: inverseDiffClampNode,
       velocity: 0,
       toValue: snapPoint,
-      scrollEndDragVelocity: scrollEndDragVelocity,
+      scrollEndDragVelocity: scrollEndDragVelocity.current,
       snapOffset: snapOffset,
-      diffClampNode,
+      diffClampNode: diffClampNode,
     }),
     inverseDiffClampNode,
   );
@@ -140,7 +160,13 @@ const CollapsibleNavBar = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor="#C2185B" barStyle={barStyle} />
       <Animated.ScrollView
-        bounces={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={NAV_BAR_HEIGHT}
+          />
+        }
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
         scrollEventThrottle={1}
@@ -149,7 +175,7 @@ const CollapsibleNavBar = () => {
             {
               nativeEvent: {
                 contentOffset: {
-                  y: scrollY,
+                  y: scrollY.current,
                 },
               },
             },
@@ -161,7 +187,7 @@ const CollapsibleNavBar = () => {
             {
               nativeEvent: {
                 velocity: {
-                  y: scrollEndDragVelocity,
+                  y: scrollEndDragVelocity.current,
                 },
               },
             },
