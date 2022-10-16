@@ -6,6 +6,7 @@ import {
   Text,
   FlatList,
   NativeScrollEvent,
+  StatusBar,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,6 +16,7 @@ import Animated, {
   interpolate,
   withTiming,
 } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // This function is copy-pastable and it's the responsible of the 'airbnb' header effect.
 const airbnbScrollHandler = (
@@ -77,18 +79,10 @@ const HEADER_HEIGHT = 60;
 const AnimatedFlatlist = Animated.createAnimatedComponent(FlatList);
 
 const AirbnbHeaderExample = (): React.ReactElement => {
+  const { top: topInset } = useSafeAreaInsets()
   const animatedValue = useSharedValue(0);
   const backUpValue = useSharedValue(0);
   const headerStyle = useAnimatedStyle(() => {
-    const opacity = withTiming(
-      interpolate(
-        animatedValue.value,
-        [0, HEADER_HEIGHT],
-        [1, 0.5],
-        Extrapolate.CLAMP
-      ),
-      { duration: 10 }
-    );
     const maxHeight = withTiming(
       interpolate(
         animatedValue.value,
@@ -100,8 +94,23 @@ const AirbnbHeaderExample = (): React.ReactElement => {
     );
 
     return {
+      transform: [{ translateY: maxHeight }],
+    };
+  });
+
+  const headerTextStyle = useAnimatedStyle(() => {
+    const opacity = withTiming(
+      interpolate(
+        animatedValue.value,
+        [0, HEADER_HEIGHT],
+        [1, 0],
+        Extrapolate.CLAMP
+      ),
+      { duration: 10 }
+    );
+
+    return {
       opacity: opacity,
-      marginTop: maxHeight,
     };
   });
 
@@ -113,13 +122,17 @@ const AirbnbHeaderExample = (): React.ReactElement => {
   const scrollRef = useRef<any>();
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={[headerStyle, styles.headerView]}>
-        <Text style={styles.headerText}>Header</Text>
+    <SafeAreaView  edges={['bottom', 'left', 'right']} style={styles.container}>
+      <Animated.View style={[headerStyle, styles.headerView, { height: HEADER_HEIGHT + topInset, paddingTop: topInset }]}>
+        <Animated.Text style={[styles.headerText, headerTextStyle]}>Header</Animated.Text>
       </Animated.View>
+      <StatusBar backgroundColor={styles.headerView.backgroundColor} />
       <AnimatedFlatlist
         ref={scrollRef}
         data={data}
+        contentContainerStyle={{
+          paddingTop: HEADER_HEIGHT + topInset,
+        }}
         renderItem={({ item, index }) => (
           <View
             style={[styles.scrollElement, { backgroundColor: colors[index] }]}>
@@ -137,7 +150,7 @@ const AirbnbHeaderExample = (): React.ReactElement => {
         scrollEventThrottle={1}
         onScroll={scrollHandler}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -149,6 +162,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'grey',
+    position:'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
   },
   headerText: {
     fontSize: 18,
