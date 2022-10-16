@@ -29,6 +29,9 @@ import Animated, {
   neq,
   eq,
   Extrapolate,
+  useSharedValue,
+  useDerivedValue,
+  useAnimatedScrollHandler,
 } from 'react-native-reanimated';
 
 const DRAG_END_INITIAL = 10000000;
@@ -90,6 +93,8 @@ function runSpring({
 const wait = (timeout) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 };
+
+
 const CollapsibleNavBar = () => {
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = React.useCallback(() => {
@@ -97,12 +102,34 @@ const CollapsibleNavBar = () => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
   }, []);
+  const clamp = (value: number, lowerBound: number, upperBound: number) => {
+    'worklet'
+    return Math.min(Math.max(lowerBound, value), upperBound)
+  }
+  const scrollY = useSharedValue<number>(0);
+  const scrollEndDragVelocity = useSharedValue<number>(DRAG_END_INITIAL);
+  const snapOffset = useSharedValue<number>(0)
 
-  const scrollY = React.useRef(new Value<number>(0));
-  const scrollEndDragVelocity = React.useRef(
-    new Value<number>(DRAG_END_INITIAL),
-  );
-  const snapOffset = new Value<number>(0);
+  // const baseTranslateY = useDerivedValue(() => {
+  //   const positive
+  // })
+
+  const scrollHandler = useAnimatedScrollHandler<{ prevY: number }>({
+    onScroll: (event, ctx) => {
+      const diff = event.contentOffset.y - ctx.prevY
+
+      scrollY.value = event.contentOffset.y
+
+
+      scrollClamp.value = clamp(scrollClamp.value + diff, 0, 74)
+
+      ctx.prevY = event.contentOffset.y
+
+    },
+    onBeginDrag: (event, ctx) => {
+      ctx.prevY = event.contentOffset.y
+    }
+  })
 
   const diffClampNode = diffClamp(
     add(
