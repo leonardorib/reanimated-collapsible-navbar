@@ -30,9 +30,9 @@ import Animated, {
   eq,
   Extrapolate,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DRAG_END_INITIAL = 10000000;
-const STATUS_BAR_HEIGHT = Platform.select({ ios: 20, android: 24 });
 const NAV_BAR_HEIGHT = Platform.select({ ios: 64, android: 56 });
 
 function runSpring({
@@ -91,6 +91,7 @@ const wait = (timeout) => {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 };
 const CollapsibleNavBar = () => {
+  const { top: topInset } = useSafeAreaInsets();
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = React.useCallback(() => {
     console.log('onRefresh');
@@ -158,17 +159,17 @@ const CollapsibleNavBar = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#C2185B" barStyle={barStyle} />
+      <StatusBar backgroundColor="#E91E63" barStyle={barStyle} />
       <Animated.ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            progressViewOffset={NAV_BAR_HEIGHT}
+            progressViewOffset={NAV_BAR_HEIGHT + topInset}
           />
         }
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={[{ paddingTop: NAV_BAR_HEIGHT + topInset }]}
         scrollEventThrottle={1}
         onScroll={event(
           [
@@ -208,6 +209,7 @@ const CollapsibleNavBar = () => {
           {
             marginTop: animatedNavBarTranslateY,
           },
+          { height: NAV_BAR_HEIGHT + topInset, paddingTop: topInset },
         ]}
       >
         <Animated.Text
@@ -231,13 +233,11 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: Platform.OS === 'ios' ? STATUS_BAR_HEIGHT : 0,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#E91E63',
     borderBottomColor: '#dedede',
     borderBottomWidth: 1,
-    height: NAV_BAR_HEIGHT,
     zIndex: 2,
   },
   navBarTitle: {
@@ -250,10 +250,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollView: {
-    marginTop: Platform.OS === 'ios' ? STATUS_BAR_HEIGHT : 0,
     backgroundColor: '#EEEEEE',
-  },
-  scrollViewContent: {
-    paddingTop: NAV_BAR_HEIGHT,
   },
 });
